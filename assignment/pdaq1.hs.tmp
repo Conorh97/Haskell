@@ -1,0 +1,50 @@
+type PDA = (Int,[Int],[Transition])
+
+type Transition = ((Int,String,String),(Int,String))
+
+type Configuration = (Int,String,String)
+
+data Result = Accept | Reject deriving Show
+
+run :: PDA -> String -> Result
+
+recRun :: PDA -> Int -> Configuration -> Result
+
+matchPush :: Int -> String -> ((Int, String, String), (Int, String)) -> String
+matchPop :: Int -> String -> ((Int, String, String), (Int, String)) -> String
+
+matchPush a b ((w, x, _),(y, z))
+   | w == a && y == a && x == b = z
+   | otherwise = ""
+
+findMatchPush a b xs
+   | [matchPush a b x | x <- xs, (matchPush a b x) /= ""] == [] = ""
+   | otherwise = [matchPush a b x | x <- xs, (matchPush a b x) /= ""]!!0
+
+matchPop a b ((w, x, z),(y, q))
+   | w == a && y == a && x == b = [z, q, y]
+   | otherwise = []
+
+findMatchPop a b xs
+   | [matchPop a b x | x <- xs, (matchPop a b x) /= []] == [] = []
+   | otherwise = [matchPop a b x | x <- xs, (matchPop a b x) /= []]!!0
+
+run x "" = Accept
+run (n, ns, ts) s
+   | even (length s) = recRun (n, ns, ts) (div (length s) 2) (n, s, "")
+   | otherwise = recRun (n, ns, ts) (div (length s) 2) (n, ((take (div (length s) 2) s) ++ (drop ((div (length s) 2) + 1) s)), "")
+
+recRun (n, ns, ts) sl (na, s, st)
+   | s == "" = Accept
+   | na == 1 && (length st) == sl = recRun (n, ns, ts) sl (2, s, st)
+   | na == 1 = recRun (n, ns, ts) sl (na, (drop 1 s), ((findMatchPush na (take 1 s) ts) ++ st))
+   | (findMatchPop na (take 1 s) ts) /= (take 1 st) || st == "" = Reject
+   | otherwise = recRun (n, ns, ts) sl (na, (drop 1 s), (drop 1 st))
+
+ijk = (1, [2,3], [((1, "a", ""), (1, "a")),
+                     ((1, "", ""), (2, "")),
+                     ((1, "", ""), (3, "")),
+                     ((2, "b", "a"), (2, "")),
+                     ((2, "c", ""), (2, "")),
+                     ((3, "b", ""), (3, "")),
+                     ((3, "c", "a"), (3, ""))])
